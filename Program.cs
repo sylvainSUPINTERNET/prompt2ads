@@ -3,6 +3,8 @@ using Google.Ads.GoogleAds;
 using Google.Ads.GoogleAds.Config;
 using Google.Ads.GoogleAds.Lib;
 using Google.Ads.GoogleAds.V21.Services;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Util.Store;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,18 +20,15 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// GoogleAdsConfig config = new GoogleAdsConfig()
-// {
-//     DeveloperToken = "",
-//     OAuth2Mode = OAuth2Flow.SERVICE_ACCOUNT
-// };
-
-// // Initialize a GoogleAdsClient class.
-// GoogleAdsClient client = new GoogleAdsClient(config);
-
-// // Create the required service.
-// CampaignServiceClient campaignService =
-//     client.GetService(Services.V21.CampaignService);
+// ( oauth2 desktop app client !)
+var secrets = GoogleClientSecrets.FromFile("client_secret_261652279569-bbe9mt3624vqqop5ob8lmd28l6vgitd5.apps.googleusercontent.com.json").Secrets;
+var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+    secrets,
+    new[] { "https://www.googleapis.com/auth/adwords" },
+    "user",
+    CancellationToken.None,
+    new FileDataStore("GoogleAdsOAuthTokens", true)
+);
 
 app.UseHttpsRedirection();
 
