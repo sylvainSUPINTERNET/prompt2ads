@@ -3,7 +3,7 @@ using Google.Ads.GoogleAds.Lib;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Util.Store;
 
-namespace Prompt2Ads.Services;
+namespace Prompt2Ads.Services.Config;
 
 
 public class GoogleSdkConfig
@@ -33,7 +33,6 @@ public class GoogleSdkConfig
             CancellationToken.None,
             new FileDataStore("GoogleAdsOAuthTokens", true)
         );
-
         var config = new GoogleAdsConfig()
         {
             // DeveloperToken = "DEV_TOKEN", ???
@@ -41,7 +40,6 @@ public class GoogleSdkConfig
             OAuth2ClientSecret = secrets.ClientSecret,
             OAuth2RefreshToken = credential.Token.RefreshToken
         };
-
         var client = new GoogleAdsClient(config);
 
         return client;
