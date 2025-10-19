@@ -7,14 +7,18 @@ namespace Prompt2Ads.Controllers.GoogleAds;
 
 [ApiController]
 [Route("/api/googleads")]
-public class DevOAuth2 : ControllerBase
+public class OAuth2Controller : ControllerBase
 {
 
-    private readonly string redirectUri = "http://localhost:3000/api/googleads/callback";
-    private readonly ILogger<DevOAuth2> _logger;
-    public DevOAuth2(ILogger<DevOAuth2> logger)
+    private readonly string redirectUri;
+    private readonly ILogger<OAuth2Controller> _logger;
+    private readonly IConfiguration _configuration;
+
+    public OAuth2Controller(ILogger<OAuth2Controller> logger, IConfiguration configuration)
     {
         _logger = logger;
+        _configuration = configuration;
+        redirectUri = _configuration["Google:redirectUri"] ?? "http://localhost:3000/api/googleads/callback";
     }
 
     [HttpGet("login")]

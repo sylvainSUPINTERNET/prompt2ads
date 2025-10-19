@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Primitives;
-using Prompt2Ads.Services.Config;
 
 namespace Prompt2Ads.Middlewares;
 
@@ -52,8 +51,8 @@ public class AuthMiddleware
         {
             try
             {
-                var googleSdkConfigSvc = context.RequestServices.GetRequiredService<IGoogleSdkConfig>();
-                string accessToken = value.ToString().Trim();
+                // var googleSdkConfigSvc = context.RequestServices.GetRequiredService<IGoogleSdkConfig>();
+                // string accessToken = value.ToString().Trim();
                 context.Items["RequestId"] = "data for ctrl";
                 await _next(context);
                 return;
