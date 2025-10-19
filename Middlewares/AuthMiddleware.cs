@@ -9,6 +9,12 @@ public class AuthMiddleware
 
     private readonly ILogger<AuthMiddleware> _logger;
 
+    private readonly HashSet<string> _allowedPath =
+    [
+        "/api/googleads/login",
+        "/api/googleads/callback"
+    ];
+
     public AuthMiddleware(
         RequestDelegate next,
         ILogger<AuthMiddleware> logger)
@@ -35,7 +41,7 @@ public class AuthMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         if ( context.Request.Path.Value != null &&
-            context.Request.Path.Value.Contains("/api/googleads/login"))
+             _allowedPath.Contains( context.Request.Path.Value.ToLower() ) )
         {
             await _next(context);
             return;
