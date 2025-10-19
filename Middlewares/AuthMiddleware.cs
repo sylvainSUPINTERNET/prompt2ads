@@ -1,4 +1,5 @@
-using Google.Ads.GoogleAds.Lib;
+using Microsoft.Extensions.Primitives;
+using Prompt2Ads.Services.Config;
 
 namespace Prompt2Ads.Middlewares;
 
@@ -8,35 +9,17 @@ public class AuthMiddleware
 
     private readonly ILogger<AuthMiddleware> _logger;
 
-    private readonly IGoogleAdsClient _googleAdsClient;
-
     public AuthMiddleware(
         RequestDelegate next,
-        ILogger<AuthMiddleware> logger,
-        IGoogleAdsClient googleAdsClient)
+        ILogger<AuthMiddleware> logger)
     {
         _next = next;
         _logger = logger;
-        _googleAdsClient = googleAdsClient;
     }
 
-    public async Task InvokeAsync(HttpContext context)
+    static async Task<Dictionary<string, object>> ErrorResponseUnauthorized(HttpContext context)
     {
-
-        if (context.Request.Headers.ContainsKey("Authorization")
-            && context.Request.Headers.Authorization.ToString() != ""
-            && context.Request.Headers.Authorization.ToString().StartsWith("Google "))
-        {
-
-            string accessToken = context.Request.Headers.Authorization.ToString()["Google ".Length..].Trim();
-
-            context.Items["RequestId"] = "data for ctrl";
-            await _next(context);
-            return;
-        }
-
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-
         Dictionary<string, object> responseNotAuthorized = new Dictionary<string, object>
         {
             ["error"] = "Unauthorized"
@@ -46,7 +29,39 @@ public class AuthMiddleware
         await context.Response.WriteAsync(
             System.Text.Json.JsonSerializer.Serialize(responseNotAuthorized)
         );
-        return;
+        return responseNotAuthorized;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        if ( context.Request.Path.Value != null &&
+            context.Request.Path.Value.Contains("/api/googleads/login"))
+        {
+            await _next(context);
+            return;
+        }
+
+        if (context.Request.Headers.TryGetValue("X-Google-Token", out StringValues value)
+            && value.ToString().Trim().ToString() != "")
+        {
+            try
+            {
+                var googleSdkConfigSvc = context.RequestServices.GetRequiredService<IGoogleSdkConfig>();
+                string accessToken = value.ToString().Trim();
+                context.Items["RequestId"] = "data for ctrl";
+                await _next(context);
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in AuthMiddleware");
+                _ = ErrorResponseUnauthorized(context);
+                return;
+            }
+        }
+
+        _ = ErrorResponseUnauthorized(context);
+        return; 
     }
     
 }
