@@ -1,6 +1,7 @@
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
 using Microsoft.AspNetCore.Mvc;
+using Prompt2Ads.Repositories.OAuth2;
 
 namespace Prompt2Ads.Controllers.GoogleAds;
 
@@ -9,16 +10,24 @@ namespace Prompt2Ads.Controllers.GoogleAds;
 [Route("/api/googleads")]
 public class OAuth2Controller : ControllerBase
 {
-
     private readonly string redirectUri;
     private readonly ILogger<OAuth2Controller> _logger;
     private readonly IConfiguration _configuration;
 
-    public OAuth2Controller(ILogger<OAuth2Controller> logger, IConfiguration configuration)
+    private readonly IUserSessionRepository _userSessionRepository;
+
+    private readonly string _provider = "google";
+
+    public OAuth2Controller(
+        ILogger<OAuth2Controller> logger,
+        IConfiguration configuration,
+        IUserSessionRepository userSessionRepository
+        )
     {
         _logger = logger;
         _configuration = configuration;
         redirectUri = _configuration["Google:redirectUri"] ?? "http://localhost:3000/api/googleads/callback";
+        _userSessionRepository = userSessionRepository;
     }
 
     [HttpGet("login")]
@@ -61,6 +70,15 @@ public class OAuth2Controller : ControllerBase
 
         // TODO: Save the refresh token securely for future use
         // await SaveRefreshToken("user", token.RefreshToken);
+        await _userSessionRepository.CreateAsync(new UserSession
+        {
+            SessionId = Guid.NewGuid().ToString(),
+            RefreshToken = token.RefreshToken,
+            Provider = _provider,
+            Scopes = [.. flow.Scopes]
+        });
+
+        
 
         return Ok(new Dictionary<string, string>
         {

@@ -1,4 +1,6 @@
+using MongoDB.Driver;
 using Prompt2Ads.Middlewares;
+using Prompt2Ads.Repositories.OAuth2;
 using Prompt2Ads.Services.GoogleAds;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,11 +18,20 @@ builder.Services.AddCors(options =>
 });
 
 
+var mongoDbName = builder.Configuration["MongoDb:DatabaseName"] ?? "prompt2ads";
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddSingleton<IMongoClient>(_ =>
+    new MongoClient(builder.Configuration.GetConnectionString("Prompt2AdsMongoDBMainCluster")));
+builder.Services.AddSingleton<IMongoDatabase>(sp =>
+    sp.GetRequiredService<IMongoClient>().GetDatabase(mongoDbName));
+
 builder.Services.AddScoped<ICampaign, Campaign>();
+builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
+
 
 var app = builder.Build();
 

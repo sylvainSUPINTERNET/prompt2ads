@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Google.Ads.GoogleAds" Version="24.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.9" />
+    <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
   </ItemGroup>
 
 </Project>
