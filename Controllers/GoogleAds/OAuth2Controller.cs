@@ -68,8 +68,7 @@ public class OAuth2Controller : ControllerBase
             taskCancellationToken: CancellationToken.None
         );
 
-        // TODO: Save the refresh token securely for future use
-        // await SaveRefreshToken("user", token.RefreshToken);
+        // TODO: Save the refresh token securely for future use KV database not MONGODB !!!!
         await _userSessionRepository.CreateAsync(new UserSession
         {
             SessionId = Guid.NewGuid().ToString(),
@@ -77,6 +76,7 @@ public class OAuth2Controller : ControllerBase
             Provider = _provider,
             Scopes = [.. flow.Scopes]
         });
+        // TODO
 
         
 
