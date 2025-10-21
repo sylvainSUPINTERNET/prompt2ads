@@ -1,3 +1,7 @@
+using Google.Ads.GoogleAds;
+using Google.Ads.GoogleAds.Config;
+using Google.Ads.GoogleAds.Lib;
+using Google.Ads.GoogleAds.V21.Services;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
 using Microsoft.AspNetCore.Mvc;
@@ -68,6 +72,7 @@ public class OAuth2Controller : ControllerBase
             taskCancellationToken: CancellationToken.None
         );
 
+
         // TODO: Save the refresh token securely for future use KV database not MONGODB !!!!
         await _userSessionRepository.CreateAsync(new UserSession
         {
@@ -78,7 +83,25 @@ public class OAuth2Controller : ControllerBase
         });
         // TODO
 
-        
+
+        // create google client with token
+        GoogleAdsConfig googleAdsConfig = new GoogleAdsConfig()
+        {
+            OAuth2ClientId = secrets.ClientId,
+            OAuth2ClientSecret = secrets.ClientSecret,
+            OAuth2RefreshToken = token.RefreshToken,
+        };
+
+        GoogleAdsClient googleAdsClient = new GoogleAdsClient(googleAdsConfig);
+
+        CampaignServiceClient campaignService = googleAdsClient.GetService(Services.V21.CampaignService);
+        CustomerServiceClient customerService =
+            googleAdsClient.GetService(Services.V21.CustomerService);
+        string[] accessibleCustomers = customerService.ListAccessibleCustomers();
+        foreach (string customer in accessibleCustomers)
+        {
+            Console.WriteLine(customer);
+        }
 
         return Ok(new Dictionary<string, string>
         {
