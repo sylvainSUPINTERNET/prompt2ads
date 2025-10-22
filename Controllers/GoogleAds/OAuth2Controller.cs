@@ -87,6 +87,7 @@ public class OAuth2Controller : ControllerBase
         // create google client with token
         GoogleAdsConfig googleAdsConfig = new GoogleAdsConfig()
         {
+            DeveloperToken = _configuration["Google:developerToken"] ?? "",
             OAuth2ClientId = secrets.ClientId,
             OAuth2ClientSecret = secrets.ClientSecret,
             OAuth2RefreshToken = token.RefreshToken,
@@ -98,6 +99,7 @@ public class OAuth2Controller : ControllerBase
         CustomerServiceClient customerService =
             googleAdsClient.GetService(Services.V21.CustomerService);
         string[] accessibleCustomers = customerService.ListAccessibleCustomers();
+        
         foreach (string customer in accessibleCustomers)
         {
             Console.WriteLine(customer);
