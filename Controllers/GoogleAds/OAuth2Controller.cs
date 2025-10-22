@@ -1,6 +1,7 @@
 using Google.Ads.GoogleAds;
 using Google.Ads.GoogleAds.Config;
 using Google.Ads.GoogleAds.Lib;
+using Google.Ads.GoogleAds.V21.Resources;
 using Google.Ads.GoogleAds.V21.Services;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
@@ -98,12 +99,52 @@ public class OAuth2Controller : ControllerBase
         CampaignServiceClient campaignService = googleAdsClient.GetService(Services.V21.CampaignService);
         CustomerServiceClient customerService =
             googleAdsClient.GetService(Services.V21.CustomerService);
+        var googleAdsService = googleAdsClient.GetService(Services.V21.GoogleAdsService);
+
         string[] accessibleCustomers = customerService.ListAccessibleCustomers();
-        
+
+        string query = @"SELECT
+            customer.id,
+            customer.descriptive_name,
+            customer.currency_code,
+            customer.time_zone,
+            customer.account_status
+        FROM customer";
+
         foreach (string customer in accessibleCustomers)
         {
-            Console.WriteLine(customer);
-        }
+            try
+            {
+                string customerId = customer.Split('/')[1];
+
+                Console.WriteLine($"Customer ID: {customerId}");
+
+                var searchRequest = new SearchGoogleAdsStreamRequest
+                {
+                    CustomerId = customerId,
+                    Query = query
+                };
+
+                googleAdsService.SearchStream(searchRequest, response =>
+                {
+                    foreach (var row in response.Results)
+                    {
+                        Customer customer = row.Customer;
+                        Console.WriteLine($"Nom : {customer.DescriptiveName}");
+                        Console.WriteLine($"Devise : {customer.CurrencyCode}");
+                        Console.WriteLine($"Fuseau horaire : {customer.TimeZone}");
+                        Console.WriteLine("-------------------------------------");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching customer data");
+                continue;
+            }
+    }
+        
+        //googleAdsConfig.LoginCustomerId = long.Parse(accessibleCustomers[0].Replace("customers/", ""));
 
         return Ok(new Dictionary<string, string>
         {
