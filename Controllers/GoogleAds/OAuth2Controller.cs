@@ -107,8 +107,7 @@ public class OAuth2Controller : ControllerBase
             customer.id,
             customer.descriptive_name,
             customer.currency_code,
-            customer.time_zone,
-            customer.account_status
+            customer.time_zone
         FROM customer";
 
         foreach (string customer in accessibleCustomers)
@@ -124,6 +123,8 @@ public class OAuth2Controller : ControllerBase
                     CustomerId = customerId,
                     Query = query
                 };
+
+                googleAdsConfig.LoginCustomerId = customerId;
 
                 googleAdsService.SearchStream(searchRequest, response =>
                 {
