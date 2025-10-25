@@ -1,6 +1,7 @@
 using MongoDB.Driver;
 using Prompt2Ads.Middlewares;
 using Prompt2Ads.Repositories.OAuth2;
+using Prompt2Ads.Services.GoogleAds;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,7 +30,7 @@ builder.Services.AddSingleton<IMongoDatabase>(sp =>
     sp.GetRequiredService<IMongoClient>().GetDatabase(mongoDbName));
 
 builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
-
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 

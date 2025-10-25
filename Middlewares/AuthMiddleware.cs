@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Primitives;
+using Prompt2Ads.Repositories.OAuth2;
 
 namespace Prompt2Ads.Middlewares;
 
@@ -8,6 +9,8 @@ public class AuthMiddleware
 
     private readonly ILogger<AuthMiddleware> _logger;
 
+    private readonly IServiceScopeFactory _scopeFactory;
+
     private readonly HashSet<string> _allowedPath =
     [
         "/api/googleads/login",
@@ -16,10 +19,12 @@ public class AuthMiddleware
 
     public AuthMiddleware(
         RequestDelegate next,
-        ILogger<AuthMiddleware> logger)
+        ILogger<AuthMiddleware> logger,
+        IServiceScopeFactory scopeFactory)
     {
         _next = next;
-        _logger = logger;
+        _logger = logger; 
+        _scopeFactory = scopeFactory;
     }
 
     static async Task<Dictionary<string, object>> ErrorResponseUnauthorized(HttpContext context)
@@ -46,14 +51,26 @@ public class AuthMiddleware
             return;
         }
 
-        if (context.Request.Headers.TryGetValue("X-Google-Token", out StringValues value)
+        if (context.Request.Headers.TryGetValue("X-Google-Session-Id", out StringValues value)
             && value.ToString().Trim().ToString() != "")
         {
             try
             {
-                // var googleSdkConfigSvc = context.RequestServices.GetRequiredService<IGoogleSdkConfig>();
-                // string accessToken = value.ToString().Trim();
-                context.Items["RequestId"] = "data for ctrl";
+
+                var scope = _scopeFactory.CreateScope();
+                var userSessionRepository = scope.ServiceProvider.GetRequiredService<IUserSessionRepository>();
+                // TODO
+                // Use something else ... like redis
+                UserSession? userSession = await userSessionRepository.GetBySessionIdAsync(value.ToString().Trim());
+                // TODO
+
+                if (userSession == null)
+                {
+                    _ = ErrorResponseUnauthorized(context);
+                    return;
+                }
+
+                context.Items["GoogleRefreshToken"] = userSession.RefreshToken;
                 await _next(context);
                 return;
             }
