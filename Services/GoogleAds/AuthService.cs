@@ -4,7 +4,7 @@ namespace Prompt2Ads.Services.GoogleAds;
 
 public class AuthService : IAuthService
 {
-    Dictionary<string, string>? IAuthService.CheckRefreshTokenGoogleApi(HttpContext context)
+    Dictionary<string, string> IAuthService.CheckRefreshTokenGoogleApi(HttpContext context)
     {
         context.Items.TryGetValue("GoogleRefreshToken", out var refreshToken);
 
@@ -16,7 +16,11 @@ public class AuthService : IAuthService
             };
         } else
         {
-            return null;
+            return new Dictionary<string, string>{
+                {
+                    "refreshToken", $"{refreshToken}"
+                }
+            };
         }
     }
 }

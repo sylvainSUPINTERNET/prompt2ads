@@ -1,40 +1,47 @@
+using Google.Ads.GoogleAds.Lib;
 using Microsoft.AspNetCore.Mvc;
 using Prompt2Ads.Services.GoogleAds;
 
 namespace Prompt2Ads.Controllers.GoogleAds;
 
 [ApiController]
-[Route("[controller]")]
-public class CampaignController : ControllerBase
+[Route("customers")]
+public class CustomerController : ControllerBase
 {
-    private readonly ILogger<CampaignController> _logger;
+    private readonly ILogger<CustomerController> _logger;
 
     private readonly IConfiguration _configuration;
 
     private readonly IAuthService _authService;
 
-    public CampaignController(
-        ILogger<CampaignController> logger,
+    private readonly IGoogleAdsConfService _googleAdsClientService;
+    
+    public CustomerController(
+        ILogger<CustomerController> logger,
         IConfiguration configuration,
-        IAuthService authService
+        IAuthService authService,
+        IGoogleAdsConfService googleAdsClientService
         )
     {
         _logger = logger;
         _configuration = configuration;
         _authService = authService;
+        _googleAdsClientService = googleAdsClientService;
     }
 
     [HttpGet(Name = "GetCustomerIds")]
     public IActionResult Get()
-    {
-        var errorDict = _authService.CheckRefreshTokenGoogleApi(HttpContext);
-        if (errorDict != null)
+    {   
+        Dictionary<string, string> resDict = _authService.CheckRefreshTokenGoogleApi(HttpContext);
+        if ( resDict.ContainsKey("error") || resDict.GetValueOrDefault("refreshToken") == null )
         {
-            return Unauthorized(errorDict);
+            return Unauthorized(resDict);
+        } else
+        {
+            GoogleAdsClient googleAdsClient = _googleAdsClientService.GetGoogleAdsClient(resDict.GetValueOrDefault("refreshToken")!);
+            
+            return Ok("Test completed");
         }
-
-
-        return Ok("Test completed");
     }
 
 }
