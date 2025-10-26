@@ -6,28 +6,22 @@ namespace Prompt2Ads.Controllers.GoogleAds;
 
 [ApiController]
 [Route("customers")]
-public class CustomerController : ControllerBase
+public class CustomerController(
+    ILogger<CustomerController> logger,
+    IConfiguration configuration,
+    IAuthService authService,
+    IGoogleAdsConfService googleAdsClientService,
+    ICustomerService customerService) : ControllerBase
 {
-    private readonly ILogger<CustomerController> _logger;
+    private readonly ILogger<CustomerController> _logger = logger;
 
-    private readonly IConfiguration _configuration;
+    private readonly IConfiguration _configuration = configuration;
 
-    private readonly IAuthService _authService;
+    private readonly IAuthService _authService = authService;
 
-    private readonly IGoogleAdsConfService _googleAdsClientService;
-    
-    public CustomerController(
-        ILogger<CustomerController> logger,
-        IConfiguration configuration,
-        IAuthService authService,
-        IGoogleAdsConfService googleAdsClientService
-        )
-    {
-        _logger = logger;
-        _configuration = configuration;
-        _authService = authService;
-        _googleAdsClientService = googleAdsClientService;
-    }
+    private readonly IGoogleAdsConfService _googleAdsClientService = googleAdsClientService;
+
+    private readonly ICustomerService _customerService = customerService;
 
     [HttpGet(Name = "GetCustomerIds")]
     public IActionResult Get()
@@ -38,9 +32,16 @@ public class CustomerController : ControllerBase
             return Unauthorized(resDict);
         } else
         {
-            GoogleAdsClient googleAdsClient = _googleAdsClientService.GetGoogleAdsClient(resDict.GetValueOrDefault("refreshToken")!);
-            
-            return Ok("Test completed");
+            try
+            {
+                string[] customerIds = _customerService.GetAccessibleCustomers(_googleAdsClientService.GetGoogleAdsClient(resDict.GetValueOrDefault("refreshToken")!));
+                return Ok(new { customerIds });
+            } catch ( Exception ex )
+            {
+                _logger.LogError("Error in GetCustomerIds: {}", ex.Message);
+                return StatusCode(500, new { errMessage = "Internal server error" });
+            }
+
         }
     }
 

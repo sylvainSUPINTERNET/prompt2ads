@@ -31,81 +31,81 @@ public class CampaignController : ControllerBase
         return new { message = "CreateCampaignGoogleAds endpoint called" };
     }
 
-    [HttpGet("test")]
-    public IActionResult Test()
-    {
-        HttpContext.Items.TryGetValue("GoogleRefreshToken", out var refreshToken);
+    // [HttpGet("test")]
+    // public IActionResult Test()
+    // {
+    //     HttpContext.Items.TryGetValue("GoogleRefreshToken", out var refreshToken);
 
-        if (refreshToken == null)
-        {
-            return Unauthorized("No refresh token found in context.");
-        }
+    //     if (refreshToken == null)
+    //     {
+    //         return Unauthorized("No refresh token found in context.");
+    //     }
 
-        var secrets = GoogleClientSecrets.FromFile("client_secret_web.json").Secrets;
+    //     var secrets = GoogleClientSecrets.FromFile("client_secret_web.json").Secrets;
 
-        GoogleAdsConfig googleAdsConfig = new GoogleAdsConfig()
-        {
-            DeveloperToken = _configuration["Google:developerToken"] ?? "",
-            OAuth2ClientId = secrets.ClientId,
-            OAuth2ClientSecret = secrets.ClientSecret,
-            OAuth2RefreshToken = refreshToken?.ToString() ?? "",
-        };
+    //     GoogleAdsConfig googleAdsConfig = new GoogleAdsConfig()
+    //     {
+    //         DeveloperToken = _configuration["Google:developerToken"] ?? "",
+    //         OAuth2ClientId = secrets.ClientId,
+    //         OAuth2ClientSecret = secrets.ClientSecret,
+    //         OAuth2RefreshToken = refreshToken?.ToString() ?? "",
+    //     };
 
-        GoogleAdsClient googleAdsClient = new GoogleAdsClient(googleAdsConfig);
+    //     GoogleAdsClient googleAdsClient = new GoogleAdsClient(googleAdsConfig);
 
-        CampaignServiceClient campaignService = googleAdsClient.GetService(Services.V22.CampaignService);
-        CustomerServiceClient customerService =
-            googleAdsClient.GetService(Services.V22.CustomerService);
-        var googleAdsService = googleAdsClient.GetService(Services.V22.GoogleAdsService);
+    //     CampaignServiceClient campaignService = googleAdsClient.GetService(Services.V22.CampaignService);
+    //     CustomerServiceClient customerService =
+    //         googleAdsClient.GetService(Services.V22.CustomerService);
+    //     var googleAdsService = googleAdsClient.GetService(Services.V22.GoogleAdsService);
 
-        string[] accessibleCustomers = customerService.ListAccessibleCustomers();
+    //     string[] accessibleCustomers = customerService.ListAccessibleCustomers();
 
-        string query = @"SELECT
-            customer.id,
-            customer.descriptive_name,
-            customer.currency_code,
-            customer.time_zone
-        FROM customer";
+    //     string query = @"SELECT
+    //         customer.id,
+    //         customer.descriptive_name,
+    //         customer.currency_code,
+    //         customer.time_zone
+    //     FROM customer";
 
-        foreach (string customer in accessibleCustomers)
-        {
-            try
-            {
-                string customerId = customer.Split('/')[1];
+    //     foreach (string customer in accessibleCustomers)
+    //     {
+    //         try
+    //         {
+    //             string customerId = customer.Split('/')[1];
 
-                Console.WriteLine($"Customer ID: {customerId}");
+    //             Console.WriteLine($"Customer ID: {customerId}");
 
-                var searchRequest = new SearchGoogleAdsStreamRequest
-                {
-                    CustomerId = customerId,
-                    Query = query
-                };
+    //             var searchRequest = new SearchGoogleAdsStreamRequest
+    //             {
+    //                 CustomerId = customerId,
+    //                 Query = query
+    //             };
 
-                googleAdsConfig.LoginCustomerId = customerId;
+    //             googleAdsConfig.LoginCustomerId = customerId;
 
-                googleAdsService.SearchStream(searchRequest, response =>
-                {
-                    foreach (var row in response.Results)
-                    {
-                        Customer customer = row.Customer;
-                        Console.WriteLine($"Nom : {customer.DescriptiveName}");
-                        Console.WriteLine($"Devise : {customer.CurrencyCode}");
-                        Console.WriteLine($"Fuseau horaire : {customer.TimeZone}");
-                        Console.WriteLine("-------------------------------------");
-                    }
-                });
+    //             googleAdsService.SearchStream(searchRequest, response =>
+    //             {
+    //                 foreach (var row in response.Results)
+    //                 {
+    //                     Customer customer = row.Customer;
+    //                     Console.WriteLine($"Nom : {customer.DescriptiveName}");
+    //                     Console.WriteLine($"Devise : {customer.CurrencyCode}");
+    //                     Console.WriteLine($"Fuseau horaire : {customer.TimeZone}");
+    //                     Console.WriteLine("----------------------w---------------");
+    //                 }
+    //             });
 
 
-                // Create budget
-                // https://developers.google.com/google-ads/api/docs/campaigns/create-campaigns#c
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching customer data");
-                continue;
-            }
+    //             // Create budget
+    //             // https://developers.google.com/google-ads/api/docs/campaigns/create-campaigns#c
+    //         }
+    //         catch (Exception ex)
+    //         {
+    //             _logger.LogError(ex, "Error fetching customer data");
+    //             continue;
+    //         }
 
-        }
-        return Ok("Test completed");
-    }
+    //     }
+    //     return Ok("Test completed");
+    // }
 }

@@ -32,6 +32,7 @@ builder.Services.AddSingleton<IMongoDatabase>(sp =>
 builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IGoogleAdsConfService, GoogleAdsConfService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 var app = builder.Build();
 
