@@ -14,11 +14,11 @@ public class GoogleAdsConfService : IGoogleAdsConfService
         _configuration = configuration;
     }
 
-    public GoogleAdsClient GetGoogleAdsClient(string refreshToken)
+    public Dictionary<GoogleAdsClient, GoogleAdsConfig> GetGoogleAdsClient(string refreshToken)
     {
         var secrets = GoogleClientSecrets.FromFile("client_secret_web.json").Secrets;
 
-        GoogleAdsConfig googleAdsConfig = new GoogleAdsConfig()
+        GoogleAdsConfig googleAdsConfig = new()
         {
             DeveloperToken = _configuration["Google:developerToken"] ?? "",
             OAuth2ClientId = secrets.ClientId,
@@ -26,7 +26,12 @@ public class GoogleAdsConfService : IGoogleAdsConfService
             OAuth2RefreshToken = refreshToken?.ToString() ?? "",
         };
 
-        return new(googleAdsConfig);
+        GoogleAdsClient googleAdsClient = new(googleAdsConfig);
+
+        return new Dictionary<GoogleAdsClient, GoogleAdsConfig>
+        {
+            { googleAdsClient, googleAdsConfig }
+        };
     }
 }
 

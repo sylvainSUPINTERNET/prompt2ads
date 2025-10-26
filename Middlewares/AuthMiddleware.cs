@@ -71,6 +71,16 @@ public class AuthMiddleware
                 }
 
                 context.Items["GoogleRefreshToken"] = userSession.RefreshToken;
+
+                if (context.Request.Headers.TryGetValue("X-Google-Customer-Id", out var customerIdHeader)
+                    && !StringValues.IsNullOrEmpty(customerIdHeader))
+                {
+                    string customerId = customerIdHeader.ToString();
+                    if ( customerIdHeader.Count == 1 && customerId.Trim() != "")
+                    {
+                        context.Items["X-Google-Customer-Id"] = customerId.Trim();
+                    }
+                }
                 await _next(context);
                 return;
             }
