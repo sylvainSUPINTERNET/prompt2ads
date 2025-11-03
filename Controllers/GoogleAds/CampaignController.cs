@@ -7,7 +7,7 @@ using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route("[controller]")]
+[Route("campaigns")]
 public class CampaignController : ControllerBase
 {
     private readonly ILogger<CampaignController> _logger;
@@ -24,9 +24,6 @@ public class CampaignController : ControllerBase
     [HttpPost(Name = "CreateCampaignGoogleAds")]
     public object Get()
     {
-        string? accessToken = Request.Headers["Authorization"];
-
-        _logger.LogInformation("CreateCampaignGoogleAds called with AccessToken: {}", accessToken);
 
         return new { message = "CreateCampaignGoogleAds endpoint called" };
     }

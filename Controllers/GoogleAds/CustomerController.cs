@@ -67,7 +67,8 @@ public class CustomerController(
                 Dictionary<GoogleAdsClient, GoogleAdsConfig> googleAdsClients = _googleAdsClientService.GetGoogleAdsClient(resDict.GetValueOrDefault("refreshToken")!);
 
                 Dictionary<string, CustomerService.CustomerDto?> resp = _customerService.ValidateCustomerId(googleAdsClients, customerIdHeader.ToString()!);
-                return Ok(resp); // If customerDto is null, the customerId is InvalidReason != null means there was an error
+                resp.TryGetValue(customerIdHeader.ToString()!, out var customerDto);
+                return Ok(customerDto); // If customerDto is null, the customerId is InvalidReason != null means there was an error
             }
             catch (Exception ex)
             {
