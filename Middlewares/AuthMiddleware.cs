@@ -11,6 +11,8 @@ public class AuthMiddleware
 
     private readonly IServiceScopeFactory _scopeFactory;
 
+    private readonly string _GOOGLE_PROVIDER = "google";
+
     private readonly HashSet<string> _allowedPath =
     [
         "/api/googleads/login",
@@ -56,7 +58,6 @@ public class AuthMiddleware
         {
             try
             {
-
                 var scope = _scopeFactory.CreateScope();
                 var userSessionRepository = scope.ServiceProvider.GetRequiredService<IUserSessionRepository>();
                 // TODO
@@ -69,20 +70,42 @@ public class AuthMiddleware
                     _ = ErrorResponseUnauthorized(context);
                     return;
                 }
+            
 
-                context.Items["GoogleRefreshToken"] = userSession.RefreshToken;
-
-                if (context.Request.Headers.TryGetValue("X-Google-Customer-Id", out var customerIdHeader)
-                    && !StringValues.IsNullOrEmpty(customerIdHeader))
+                if (userSession.Provider.Equals(_GOOGLE_PROVIDER))
                 {
-                    string customerId = customerIdHeader.ToString();
-                    if ( customerIdHeader.Count == 1 && customerId.Trim() != "")
+                    context.Items["GoogleRefreshToken"] = userSession.RefreshToken;
+                    context.Items["GoogleSub"] = userSession.Sub;
+                    context.Items["GoogleEmail"] = userSession.Email;
+                    context.Items["GoogleEmailVerified"] = userSession.EmailVerified;
+                    context.Items["GooglePicture"] = userSession.Picture;
+                    context.Items["GoogleGivenName"] = userSession.GivenName;
+                    context.Items["GoogleFamilyName"] = userSession.FamilyName;
+                    context.Items["GoogleName"] = userSession.Name;
+                    context.Items["GoogleScopes"] = userSession.Scopes;
+                    context.Items["GoogleProvider"] = userSession.Provider;
+
+                    if (context.Request.Headers.TryGetValue("X-Google-Customer-Id", out var customerIdHeader)
+                        && !StringValues.IsNullOrEmpty(customerIdHeader))
                     {
-                        context.Items["X-Google-Customer-Id"] = customerId.Trim();
+                        string customerId = customerIdHeader.ToString();
+                        if ( customerIdHeader.Count == 1 && customerId.Trim() != "")
+                        {
+                            context.Items["X-Google-Customer-Id"] = customerId.Trim();
+                        }
                     }
+                    await _next(context);
+                    return;
+                } 
+                    else
+                {
+                    _logger.LogError("No valid provider found in user session");
+                    _ = ErrorResponseUnauthorized(context);
+                    return; 
                 }
-                await _next(context);
-                return;
+
+
+
             }
             catch (Exception ex)
             {

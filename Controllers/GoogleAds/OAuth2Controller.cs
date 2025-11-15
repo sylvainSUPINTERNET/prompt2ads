@@ -4,11 +4,13 @@ using Google.Ads.GoogleAds.Config;
 using Google.Ads.GoogleAds.Lib;
 using Google.Ads.GoogleAds.V22.Resources;
 using Google.Ads.GoogleAds.V22.Services;
+using Google.Api;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Prompt2Ads.Repositories.OAuth2;
+using Prompt2Ads.Services.GoogleAds;
 
 namespace Prompt2Ads.Controllers.GoogleAds;
 
@@ -20,6 +22,7 @@ public class OAuth2Controller : ControllerBase
     private readonly string redirectUri;
     private readonly ILogger<OAuth2Controller> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IAuthService _authService;
 
     private readonly IUserSessionRepository _userSessionRepository;
 
@@ -36,13 +39,15 @@ public class OAuth2Controller : ControllerBase
     public OAuth2Controller(
         ILogger<OAuth2Controller> logger,
         IConfiguration configuration,
-        IUserSessionRepository userSessionRepository
+        IUserSessionRepository userSessionRepository,
+        IAuthService authService
         )
     {
         _logger = logger;
         _configuration = configuration;
         redirectUri = _configuration["Google:redirectUri"] ?? "http://localhost:3000/api/googleads/callback";
         _userSessionRepository = userSessionRepository;
+        _authService = authService;
     }
 
     [HttpGet("login")]
@@ -63,6 +68,36 @@ public class OAuth2Controller : ControllerBase
             return BadRequest("Failed to create authorization URL.");
         }
         return Redirect(authorizationUrl.ToString());
+    }
+
+    [HttpGet("user-info")]
+    public async Task<IActionResult> GetUserInfo()
+    {
+        try
+        {
+            Dictionary<string, string> resDict = _authService.CheckRefreshTokenGoogleApi(HttpContext);
+            if (resDict.ContainsKey("error") || resDict.GetValueOrDefault("refreshToken") == null)
+            {
+                return Unauthorized(resDict);
+            }
+
+            return Ok( new 
+            { 
+                email = HttpContext.Items.TryGetValue("GoogleEmail", out var email) ? email : null,
+                name = HttpContext.Items.TryGetValue("GoogleName", out var name) ? name : null,
+                picture = HttpContext.Items.TryGetValue("GooglePicture", out var picture) ? picture : null,
+                emailVerified = HttpContext.Items.TryGetValue("GoogleEmailVerified", out var emailVerified) ? emailVerified : null,
+                givenName = HttpContext.Items.TryGetValue("GoogleGivenName", out var givenName) ? givenName : null,
+                familyName = HttpContext.Items.TryGetValue("GoogleFamilyName", out var familyName) ? familyName : null,
+                sub = HttpContext.Items.TryGetValue("GoogleSub", out var sub) ? sub : null,
+                scopes = HttpContext.Items.TryGetValue("GoogleScopes", out var scopes) ? scopes : null
+            } );
+        }
+         catch ( Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetUserInfo");
+            return StatusCode(500, new { error = "Internal server error", details = ex.Message }); 
+        }
     }
 
     [HttpGet("callback")]
@@ -86,13 +121,12 @@ public class OAuth2Controller : ControllerBase
                 redirectUri: redirectUri,
                 taskCancellationToken: CancellationToken.None
             );
-            
-
+        
             var http = new HttpClient();
-            http.DefaultRequestHeaders.Authorization =new AuthenticationHeaderValue("Bearer", token.AccessToken);
+            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
             var response = await http.GetStringAsync("https://openidconnect.googleapis.com/v1/userinfo");
             var user = JObject.Parse(response);
-
+            
             // TODO: Save the refresh token securely for future use KV database not MONGODB !!!!
 
             // TODO => use TTL based on token expiry
@@ -184,13 +218,12 @@ public class OAuth2Controller : ControllerBase
                 { "access_token", token.AccessToken },
                 { "refresh_token", token.RefreshToken }
             });
-        } 
+        }
             catch ( Exception ex)
         {
-           return StatusCode(500, new { error = "Internal server error", details = ex.Message }); 
+            _logger.LogError(ex, "Error in GoogleAdsCallback");
+            return StatusCode(500, new { error = "Internal server error", details = ex.Message }); 
         }
-        
-
     }
 
 }
