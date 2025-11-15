@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using Google.Ads.GoogleAds;
 using Google.Ads.GoogleAds.Config;
 using Google.Ads.GoogleAds.Lib;
@@ -6,6 +7,7 @@ using Google.Ads.GoogleAds.V22.Services;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Auth.OAuth2.Flows;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using Prompt2Ads.Repositories.OAuth2;
 
 namespace Prompt2Ads.Controllers.GoogleAds;
@@ -22,6 +24,14 @@ public class OAuth2Controller : ControllerBase
     private readonly IUserSessionRepository _userSessionRepository;
 
     private readonly string _provider = "google";
+
+    private readonly string[] _scopes = new[]
+    {
+        "https://www.googleapis.com/auth/adwords",
+        "openid",
+        "email",
+        "profile"
+    };
 
     public OAuth2Controller(
         ILogger<OAuth2Controller> logger,
@@ -44,7 +54,7 @@ public class OAuth2Controller : ControllerBase
         {
             Prompt = "consent",
             ClientSecrets = secrets,
-            Scopes = new[] { "https://www.googleapis.com/auth/adwords" }
+            Scopes = _scopes
         });
 
         Uri? authorizationUrl = flow.CreateAuthorizationCodeRequest(redirectUri).Build();
@@ -58,107 +68,128 @@ public class OAuth2Controller : ControllerBase
     [HttpGet("callback")]
     public async Task<IActionResult> GoogleAdsCallback(string code)
     {
-        var secrets = GoogleClientSecrets.FromFile("client_secret_web.json").Secrets;
 
-        var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+        try
         {
-            ClientSecrets = secrets,
-            Scopes = new[] { "https://www.googleapis.com/auth/adwords" }
-        });
+            
+            var secrets = GoogleClientSecrets.FromFile("client_secret_web.json").Secrets;
 
-        var token = await flow.ExchangeCodeForTokenAsync(
-            userId: "user",
-            code: code,
-            redirectUri: redirectUri,
-            taskCancellationToken: CancellationToken.None
-        );
+            var flow = new GoogleAuthorizationCodeFlow(new GoogleAuthorizationCodeFlow.Initializer
+            {
+                ClientSecrets = secrets,
+                Scopes = _scopes
+            });
 
-
-        // TODO: Save the refresh token securely for future use KV database not MONGODB !!!!
-        var sessionId = Guid.NewGuid().ToString();
-        _logger.LogInformation($"Save session : {sessionId}");
-        // TODO => use TTL based on token expiry
-        // await _userSessionRepository.CreateAsync(new UserSession
-        // {
-        //     SessionId = Guid.NewGuid().ToString(),
-        //     RefreshToken = token.RefreshToken,
-        //     Provider = _provider,
-        //     Scopes = [.. flow.Scopes]
-        // });
-        // TODO
-
-        // // TODO => for testing 
-        //     // create google client with token
-        //     GoogleAdsConfig googleAdsConfig = new GoogleAdsConfig()
-        //     {
-        //         DeveloperToken = _configuration["Google:developerToken"] ?? "",
-        //         OAuth2ClientId = secrets.ClientId,
-        //         OAuth2ClientSecret = secrets.ClientSecret,
-        //         OAuth2RefreshToken = token.RefreshToken,
-        //     };
-
-        //     GoogleAdsClient googleAdsClient = new GoogleAdsClient(googleAdsConfig);
-
-        //     CampaignServiceClient campaignService = googleAdsClient.GetService(Services.V22.CampaignService);
-        //     CustomerServiceClient customerService =
-        //         googleAdsClient.GetService(Services.V22.CustomerService);
-        //     var googleAdsService = googleAdsClient.GetService(Services.V22.GoogleAdsService);
-
-        //     string[] accessibleCustomers = customerService.ListAccessibleCustomers();
-
-        //     string query = @"SELECT
-        //         customer.id,
-        //         customer.descriptive_name,
-        //         customer.currency_code,
-        //         customer.time_zone
-        //     FROM customer";
-
-        //     foreach (string customer in accessibleCustomers)
-        //     {
-        //         try
-        //         {
-        //             string customerId = customer.Split('/')[1];
-
-        //             Console.WriteLine($"Customer ID: {customerId}");
-
-        //             var searchRequest = new SearchGoogleAdsStreamRequest
-        //             {
-        //                 CustomerId = customerId,
-        //                 Query = query
-        //             };
-
-        //             googleAdsConfig.LoginCustomerId = customerId;
-
-        //             googleAdsService.SearchStream(searchRequest, response =>
-        //             {
-        //                 foreach (var row in response.Results)
-        //                 {
-        //                     Customer customer = row.Customer;
-        //                     Console.WriteLine($"Nom : {customer.DescriptiveName}");
-        //                     Console.WriteLine($"Devise : {customer.CurrencyCode}");
-        //                     Console.WriteLine($"Fuseau horaire : {customer.TimeZone}");
-        //                     Console.WriteLine("-------------------------------------");
-        //                 }
-        //             });
-
-
-        //             // Create budget
-        //             // https://developers.google.com/google-ads/api/docs/campaigns/create-campaigns#c
-                    
-        //         }
-        //         catch (Exception ex)
-        //         {
-        //             _logger.LogError(ex, "Error fetching customer data");
-        //             continue;
-        //         }
-        //  }
+            var token = await flow.ExchangeCodeForTokenAsync(
+                userId: "user",
+                code: code,
+                redirectUri: redirectUri,
+                taskCancellationToken: CancellationToken.None
+            );
             
 
-        return Ok(new Dictionary<string, string>
+            var http = new HttpClient();
+            http.DefaultRequestHeaders.Authorization =new AuthenticationHeaderValue("Bearer", token.AccessToken);
+            var response = await http.GetStringAsync("https://openidconnect.googleapis.com/v1/userinfo");
+            var user = JObject.Parse(response);
+
+            // TODO: Save the refresh token securely for future use KV database not MONGODB !!!!
+
+            // TODO => use TTL based on token expiry
+            // await _userSessionRepository.CreateAsync(new UserSession
+            // {
+            //     SessionId = Guid.NewGuid().ToString(),
+            //     RefreshToken = token.RefreshToken,
+            //     Provider = _provider,
+            //     Scopes = [.. flow.Scopes],
+            //     Email = user["email"]?.ToString() ?? "",
+            //     Name = user["name"]?.ToString() ?? "",
+            //     Picture = user["picture"]?.ToString() ?? "",
+            //     EmailVerified = user["email_verified"]?.ToObject<bool>() ?? false,
+            //     GivenName = user["given_name"]?.ToString(),
+            //     FamilyName = user["family_name"]?.ToString(),
+            //     Sub = user["sub"]!.ToString()
+            // });
+            // TODO
+
+            // // TODO => for testing 
+            //     // create google client with token
+            //     GoogleAdsConfig googleAdsConfig = new GoogleAdsConfig()
+            //     {
+            //         DeveloperToken = _configuration["Google:developerToken"] ?? "",
+            //         OAuth2ClientId = secrets.ClientId,
+            //         OAuth2ClientSecret = secrets.ClientSecret,
+            //         OAuth2RefreshToken = token.RefreshToken,
+            //     };
+
+            //     GoogleAdsClient googleAdsClient = new GoogleAdsClient(googleAdsConfig);
+
+            //     CampaignServiceClient campaignService = googleAdsClient.GetService(Services.V22.CampaignService);
+            //     CustomerServiceClient customerService =
+            //         googleAdsClient.GetService(Services.V22.CustomerService);
+            //     var googleAdsService = googleAdsClient.GetService(Services.V22.GoogleAdsService);
+
+            //     string[] accessibleCustomers = customerService.ListAccessibleCustomers();
+
+            //     string query = @"SELECT
+            //         customer.id,
+            //         customer.descriptive_name,
+            //         customer.currency_code,
+            //         customer.time_zone
+            //     FROM customer";
+
+            //     foreach (string customer in accessibleCustomers)
+            //     {
+            //         try
+            //         {
+            //             string customerId = customer.Split('/')[1];
+
+            //             Console.WriteLine($"Customer ID: {customerId}");
+
+            //             var searchRequest = new SearchGoogleAdsStreamRequest
+            //             {
+            //                 CustomerId = customerId,
+            //                 Query = query
+            //             };
+
+            //             googleAdsConfig.LoginCustomerId = customerId;
+
+            //             googleAdsService.SearchStream(searchRequest, response =>
+            //             {
+            //                 foreach (var row in response.Results)
+            //                 {
+            //                     Customer customer = row.Customer;
+            //                     Console.WriteLine($"Nom : {customer.DescriptiveName}");
+            //                     Console.WriteLine($"Devise : {customer.CurrencyCode}");
+            //                     Console.WriteLine($"Fuseau horaire : {customer.TimeZone}");
+            //                     Console.WriteLine("-------------------------------------");
+            //                 }
+            //             });
+
+
+            //             // Create budget
+            //             // https://developers.google.com/google-ads/api/docs/campaigns/create-campaigns#c
+                        
+            //         }
+            //         catch (Exception ex)
+            //         {
+            //             _logger.LogError(ex, "Error fetching customer data");
+            //             continue;
+            //         }
+            //  }
+                
+
+            return Ok(new Dictionary<string, string>
+            {
+                { "access_token", token.AccessToken },
+                { "refresh_token", token.RefreshToken }
+            });
+        } 
+            catch ( Exception ex)
         {
-            { "access_token", token.AccessToken },
-            { "refresh_token", token.RefreshToken }
-        });
+           return StatusCode(500, new { error = "Internal server error", details = ex.Message }); 
+        }
+        
 
     }
 

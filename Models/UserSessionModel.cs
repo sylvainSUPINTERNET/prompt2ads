@@ -21,4 +21,26 @@ public class UserSession
 
     [BsonElement("provider")]
     public string Provider { get; set; } = string.Empty;
+
+    [BsonElement("sub")]
+    public string Sub { get; set; } = string.Empty;
+
+    [BsonElement("givenName")]
+    public string? GivenName { get; set; }
+
+    [BsonElement("familyName")]
+    public string? FamilyName { get; set; }
+
+    [BsonElement("email")]
+    public string? Email { get; set; }
+
+    [BsonElement("emailVerified")]
+    public bool EmailVerified { get; set; }
+    
+    [BsonElement("picture")]
+    public string? Picture { get; set; }
+
+    [BsonElement("Name")]
+    public string? Name { get; set; }
+
 }
