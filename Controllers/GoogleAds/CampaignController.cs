@@ -7,7 +7,7 @@ using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route("campaigns")]
+[Route("/api/google/campaigns")]
 public class CampaignController : ControllerBase
 {
     private readonly ILogger<CampaignController> _logger;

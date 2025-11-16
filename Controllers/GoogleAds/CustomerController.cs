@@ -6,7 +6,7 @@ using Prompt2Ads.Services.GoogleAds;
 namespace Prompt2Ads.Controllers.GoogleAds;
 
 [ApiController]
-[Route("customers")]
+[Route("/api/google/customers")]
 public class CustomerController(
     ILogger<CustomerController> logger,
     IAuthService authService,

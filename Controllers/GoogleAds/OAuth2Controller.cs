@@ -16,7 +16,7 @@ namespace Prompt2Ads.Controllers.GoogleAds;
 
 
 [ApiController]
-[Route("/api/googleads")]
+[Route("/api/google/users")]
 public class OAuth2Controller : ControllerBase
 {
     private readonly string redirectUri;
