@@ -21,10 +21,11 @@ public class GoogleSdkConfig
     /// Access token is created in folder at root level : GoogleAdsOAuthTokens
     /// You can delete this folder to re-generate a new access token / refresh token ...
     /// </summary>
+
     
     public async Task<GoogleAdsClient> DevDesktopClientAccessTokenGenerator()
     {
-        _logger.LogInformation("GoogleSdkConfig dev init - DesktopClientAccessTokenGenerator");
+        _logger.LogInformation("GoogleSdkConfig dev - DesktopClientAccessTokenGenerator");
 
         var secrets = GoogleClientSecrets.FromFile("client_secret_desktop_dev.json").Secrets;
         
